@@ -1,0 +1,25 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+# Distribution name is a placeholder pending the release/naming decision;
+# the import name is `dogwood`.
+name = "aws-dogwood"
+version = "0.1.0"
+description = "Python bindings for the Dogwood policy frontend (validate, lower, replay, live authorization)."
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "dogwood._dogwood"
+
