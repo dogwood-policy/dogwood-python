@@ -12,9 +12,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # The Dogwood operations, shared with the `dogwood` CLI and the WebAssembly
-# binding. A path dependency on the Dogwood_Language checkout until
-# `dogwood-ops` is published; then `dogwood-ops = { version = "…", features = ["mcp-schema"] }`.
-dogwood-ops = { package = "amzn-dogwood-ops", path = "../../../Dogwood/src/Dogwood_Language/dogwood-ops", features = ["mcp-schema"] }
+# binding.
+dogwood-ops = { version = "1.2", features = ["mcp-schema"] }
 pyo3 = { version = "0.30", features = ["abi3-py39"] }
 pythonize = "0.30"
 serde = "1"

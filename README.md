@@ -6,11 +6,8 @@ the `dogwood` CLI and `@aws/dogwood-wasm` share (reports, errors, the live
 authorizer, input limits, fail-closed rules). This crate only converts Python
 values and maps `OpError` to `dogwood.DogwoodError`.
 
-`dogwood-ops` is not published yet, so `crates/dogwood-python/Cargo.toml`
-takes it by path from a `Dogwood_Language` checkout at
-`~/Dogwood/src/Dogwood_Language` (relative path
-`../../../Dogwood/src/Dogwood_Language/dogwood-ops`). Switch to a version
-requirement once it is released.
+It depends on [`dogwood-ops`](https://crates.io/crates/dogwood-ops) from
+crates.io.
 
 ## Python
 
@@ -46,9 +43,9 @@ Same surface and semantics as `@aws/dogwood-wasm`, in snake_case. Differences:
   declares free-threaded support (`gil_used = false`).
 * One abi3 wheel covers CPython >= 3.9.
 
-## Dogwood 1.2 contract (mainline)
+## Dogwood 1.2 contract
 
-Built against mainline `dogwood-language`, which checks events against the
+Built against `dogwood-language` 1.2, which checks events against the
 schemas at run time:
 
 * a request's context must match the action's context type (the MCP template
@@ -59,3 +56,16 @@ schemas at run time:
   ("event rejected, not recorded in the history") and leaves the history
   untouched, and `replay` lists it in `rejected`;
 * a `.log` trace must log `callerResource` as well as `callerPrincipal`.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every PR and push to `main`, and daily:
+
+* `build-test`: `cargo build --locked`, builds the abi3 wheel with maturin,
+  runs `pytest` against the installed wheel on CPython 3.13 and runs
+  `examples/demo.py` on CPython 3.9 (the oldest supported version);
+* `cargo-deny`: RustSec advisories, licenses, bans and sources (`deny.toml`);
+* `pip-audit`: audits the hash-pinned CI tools in `ci/requirements.txt`.
+
+To change the CI tools, edit `ci/requirements.in` and recompile
+`ci/requirements.txt` with the command at the top of that file.

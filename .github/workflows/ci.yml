@@ -1,0 +1,114 @@
+name: ci
+
+# Builds the extension from the committed lockfiles, runs the test suite, and
+# audits the Rust and Python dependencies. Required to pass before merging to
+# main.
+#
+# Every third-party action is pinned by commit SHA; Dependabot keeps the pins
+# (and the version comments) current.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # New advisories land against unchanged code; re-audit daily.
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Installs the toolchain pinned in rust-toolchain.toml.
+      - run: rustup toolchain install
+
+      # 3.9 is the abi3 floor the wheel targets; 3.13 runs the build and test
+      # tools (pytest no longer supports 3.9). The last listed is the default.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: |
+            3.9
+            3.13
+
+      # Hash-pinned build and test tools (ci/requirements.txt).
+      - run: |
+          python -m venv "$RUNNER_TEMP/tools"
+          "$RUNNER_TEMP/tools/bin/pip" install --require-hashes -r ci/requirements.txt
+
+      # `--locked` fails the build rather than silently re-resolving if
+      # Cargo.lock is out of date.
+      - run: cargo build --locked --workspace
+
+      - name: Build the abi3 wheel
+        working-directory: crates/dogwood-python
+        run: '"$RUNNER_TEMP/tools/bin/maturin" build --release --locked --out "$RUNNER_TEMP/dist"'
+
+      # Run from outside the source tree so the tests import the installed
+      # wheel, not crates/dogwood-python/python.
+      - name: Test the wheel (CPython 3.13)
+        working-directory: ${{ runner.temp }}
+        run: |
+          "$RUNNER_TEMP/tools/bin/pip" install --no-index --find-links "$RUNNER_TEMP/dist" aws-dogwood
+          "$RUNNER_TEMP/tools/bin/python" -m pytest "$GITHUB_WORKSPACE/crates/dogwood-python/tests"
+
+      # The same wheel must load on the oldest supported CPython.
+      - name: Smoke-test the wheel (CPython 3.9)
+        working-directory: ${{ runner.temp }}
+        run: |
+          python3.9 -m venv py39
+          py39/bin/pip install --no-index --find-links "$RUNNER_TEMP/dist" aws-dogwood
+          py39/bin/python "$GITHUB_WORKSPACE/crates/dogwood-python/examples/demo.py"
+
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # cargo-deny reads the dependency graph via `cargo metadata`, so it needs
+      # the toolchain pinned in rust-toolchain.toml. Install it explicitly
+      # rather than relying on rustup's auto-install.
+      - run: rustup toolchain install
+
+      - uses: taiki-e/install-action@3a3daafd3b7f23b8f65d9f5ba2db203fb59b79e2 # v2.90.2
+        with:
+          tool: cargo-deny@0.20.2
+
+      # Advisories (RustSec), licenses, banned crates and allowed sources;
+      # policy in deny.toml.
+      - run: cargo deny --locked check
+
+  # The Python counterpart of dogwood-wasm's npm-audit: the extension has no
+  # Python runtime dependencies, so this audits the CI build and test tools.
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
+        with:
+          inputs: ci/requirements.txt
+          require-hashes: true
+          no-deps: true

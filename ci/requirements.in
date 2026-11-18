@@ -1,0 +1,6 @@
+# Python tools CI uses to build and test the extension (on CPython 3.13; see
+# .github/workflows/ci.yml). Recompile the hash-pinned requirements.txt with:
+#   uv pip compile --python-version 3.13 --generate-hashes \
+#     ci/requirements.in -o ci/requirements.txt
+maturin>=1.7,<2
+pytest>=9.0.3

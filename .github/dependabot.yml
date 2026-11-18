@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    # Give a freshly published release time to be yanked before we take it.
+    cooldown:
+      default-days: 7
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  # The hash-pinned CI tools in ci/requirements.txt.
+  - package-ecosystem: pip
+    directory: /ci
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      pip:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

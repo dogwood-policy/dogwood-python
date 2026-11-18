@@ -26,49 +26,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "amzn-dogwood-language"
-version = "1.0.0"
-dependencies = [
- "amzn-dogwood-syntax",
- "cedar-policy",
- "cedar-policy-core",
- "cedar-policy-mcp-schema-generator",
- "mcp-tools-sdk",
- "miette",
- "nonempty",
- "pest",
- "pest_derive",
- "regex",
- "rhai",
- "rust_decimal",
- "rustc-literal-escaper",
- "serde",
- "serde_json",
- "sha2",
- "smol_str",
- "thiserror 1.0.69",
- "vstd",
-]
-
-[[package]]
-name = "amzn-dogwood-ops"
-version = "0.1.0"
-dependencies = [
- "amzn-dogwood-language",
- "miette",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "amzn-dogwood-syntax"
-version = "0.1.0"
-dependencies = [
- "pest",
- "pest_derive",
-]
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -362,6 +319,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -477,14 +440,63 @@ dependencies = [
 ]
 
 [[package]]
+name = "dogwood-language"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60efd0759114b01079d47acf4e7ef3b52866f4d2e4420705eeb2a3a7e74568f3"
+dependencies = [
+ "cedar-policy",
+ "cedar-policy-core",
+ "cedar-policy-mcp-schema-generator",
+ "dogwood-syntax",
+ "mcp-tools-sdk",
+ "miette",
+ "nonempty",
+ "pest",
+ "pest_derive",
+ "regex",
+ "rhai",
+ "rust_decimal",
+ "rustc-literal-escaper",
+ "serde",
+ "serde_json",
+ "sha2",
+ "smol_str",
+ "thiserror 1.0.69",
+ "vstd",
+]
+
+[[package]]
+name = "dogwood-ops"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0edc60ce1eca37a41250b7cf58ca1c269e364d132c3e8dcfce641e6ce4ab5cb2"
+dependencies = [
+ "dogwood-language",
+ "miette",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "dogwood-python"
 version = "0.1.0"
 dependencies = [
- "amzn-dogwood-ops",
+ "dogwood-ops",
  "pyo3",
  "pythonize",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "dogwood-syntax"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dff6c998d9402b815a74b31024979bb21d567a77aed6b5554737c03a803d3c6"
+dependencies = [
+ "pest",
+ "pest_derive",
 ]
 
 [[package]]
@@ -1966,16 +1978,17 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "verus_builtin"
-version = "0.0.0-2026-05-17-0151"
+version = "0.0.0-2026-09-16-0054"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cab9266bfb5cf45a080f425c560b0e0be2bf81194f0e80258990c49c1829d8b9"
+checksum = "5e4a9e69d45ddbe303075756d3fc2fcc965eb9dc70c80651d0e4458a6af1ed83"
 
 [[package]]
 name = "verus_builtin_macros"
-version = "0.0.0-2026-06-14-0213"
+version = "0.0.0-2026-09-20-0158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "472dd2037f1194cf402c982d3423b058173e34a5ec0aab3c0bef78801ebd5e34"
+checksum = "213ca3e8a80925aec251d3f1952a213d6090156b58ad81dccc3a2f1fed77c99f"
 dependencies = [
+ "convert_case",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -1986,9 +1999,9 @@ dependencies = [
 
 [[package]]
 name = "verus_prettyplease"
-version = "0.0.0-2026-05-31-0205"
+version = "0.0.0-2026-09-06-0133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ffdc94c89109a67c59646f6b6e71b49de394020f45294247dd716470523245b"
+checksum = "71956c0dcf55f57fd5a5335fff16981f7e0912d2e887914518c5a64fe36c063c"
 dependencies = [
  "proc-macro2",
  "verus_syn",
@@ -1996,11 +2009,11 @@ dependencies = [
 
 [[package]]
 name = "verus_state_machines_macros"
-version = "0.0.0-2026-06-14-0213"
+version = "0.0.0-2026-09-06-0133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6704a9ce586a5027f87933d9a84817411c937804090a9585c28bf335ac37eefc"
+checksum = "5f78ea16629331605a440e9e0a259dd3492a78212186ba82253ad0988127407f"
 dependencies = [
- "indexmap 1.9.3",
+ "indexmap 2.14.2",
  "proc-macro2",
  "quote",
  "verus_syn",
@@ -2008,9 +2021,9 @@ dependencies = [
 
 [[package]]
 name = "verus_syn"
-version = "0.0.0-2026-05-31-0205"
+version = "0.0.0-2026-09-06-0133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "030b774330d5ec618691c2cd6fba8bbb13bd538f3884a1143450baec25749706"
+checksum = "7d8b53574934e1f608dfccd809ce17f3733d6eb99c14ce8220326121929e1637"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2019,9 +2032,9 @@ dependencies = [
 
 [[package]]
 name = "vstd"
-version = "0.0.0-2026-06-14-0213"
+version = "0.0.0-2026-09-20-0158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9c9b87576c9126305f9a91fdd72b0eb246e88e094f6a55e46c67ae2c83568c9"
+checksum = "bb7a36bbc0193492141eef73272853a5a8d73288bed1ea5344563b0382cdf7c9"
 dependencies = [
  "verus_builtin",
  "verus_builtin_macros",
