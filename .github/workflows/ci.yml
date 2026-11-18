@@ -37,13 +37,12 @@ jobs:
       # Installs the toolchain pinned in rust-toolchain.toml.
       - run: rustup toolchain install
 
-      # 3.9 is the abi3 floor the wheel targets; 3.13 runs the build and test
-      # tools (pytest no longer supports 3.9). The last listed is the default.
+      # Runs the build and test tools. The oldest supported CPython (3.9) is
+      # smoke-tested in a container below: setup-python has no 3.9 build for
+      # current runner images, and pytest no longer supports 3.9.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: |
-            3.9
-            3.13
+          python-version: "3.13"
 
       # Hash-pinned build and test tools (ci/requirements.txt).
       - run: |
@@ -66,13 +65,16 @@ jobs:
           "$RUNNER_TEMP/tools/bin/pip" install --no-index --find-links "$RUNNER_TEMP/dist" aws-dogwood
           "$RUNNER_TEMP/tools/bin/python" -m pytest "$GITHUB_WORKSPACE/crates/dogwood-python/tests"
 
-      # The same wheel must load on the oldest supported CPython.
+      # The same abi3 wheel must load on the oldest supported CPython. The
+      # image is pinned by digest (python:3.9.25-slim, the final 3.9 release)
+      # and runs without network access.
       - name: Smoke-test the wheel (CPython 3.9)
-        working-directory: ${{ runner.temp }}
         run: |
-          python3.9 -m venv py39
-          py39/bin/pip install --no-index --find-links "$RUNNER_TEMP/dist" aws-dogwood
-          py39/bin/python "$GITHUB_WORKSPACE/crates/dogwood-python/examples/demo.py"
+          docker run --rm --network none \
+            -v "$RUNNER_TEMP/dist:/dist:ro" \
+            -v "$GITHUB_WORKSPACE/crates/dogwood-python/examples:/examples:ro" \
+            python:3.9-slim@sha256:2d97f6910b16bd338d3060f261f53f144965f755599aab1acda1e13cf1731b1b \
+            sh -euc 'pip install --root-user-action=ignore --no-index --find-links /dist aws-dogwood && python /examples/demo.py'
 
   cargo-deny:
     runs-on: ubuntu-latest
