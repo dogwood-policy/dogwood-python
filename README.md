@@ -83,9 +83,10 @@ distribution; a release fails without it.
 To change those tools, edit the `.in` file next to them and recompile with
 the command at its top.
 
-## Releasing
+## Design and releasing
 
-Releases are published to PyPI by `.github/workflows/release.yml` when a
+[DESIGN.md](DESIGN.md) describes how the bindings work. Releases are
+published to PyPI by `.github/workflows/release.yml` when a
 `v*` tag is pushed; see [RELEASING.md](RELEASING.md).
 
 ## Contributing and security
