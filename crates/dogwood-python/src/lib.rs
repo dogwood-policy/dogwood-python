@@ -65,13 +65,41 @@ fn to_py<'py, T: Serialize>(py: Python<'py>, value: &T) -> PyResult<Bound<'py, P
     pythonize::pythonize(py, value).map_err(|e| raise_msg(py, format!("internal: {e}")))
 }
 
+// ─── calling into the core ───────────────────────────────────────────
+
+/// Run `f` with the GIL released. Every call into the core goes through here.
+fn detach<T: Send>(py: Python<'_>, f: impl FnOnce() -> T + Send) -> T {
+    py.detach(|| on_core_stack(f))
+}
+
+/// Run `f` where Cedar's stack-depth check sees an accurate stack size.
+///
+/// Cedar fails closed ("recursion limit reached") when `stacker` reports less
+/// than 100 KiB of stack left. On musl, `pthread_getattr_np` reports the main
+/// thread's stack as only the part mapped so far, not its rlimit, so every
+/// evaluation on the main thread was denied. When the reported remaining
+/// stack is under `RED_ZONE`, run `f` on a fresh `STACK_SIZE` stack, whose
+/// limit `stacker` knows exactly. Other threads, which report their real
+/// size, run `f` in place. glibc, macOS and Windows report correctly.
+#[cfg(target_env = "musl")]
+fn on_core_stack<T>(f: impl FnOnce() -> T) -> T {
+    const RED_ZONE: usize = 1024 * 1024;
+    const STACK_SIZE: usize = 8 * 1024 * 1024;
+    stacker::maybe_grow(RED_ZONE, STACK_SIZE, f)
+}
+
+#[cfg(not(target_env = "musl"))]
+fn on_core_stack<T>(f: impl FnOnce() -> T) -> T {
+    f()
+}
+
 /// Run a core operation with the GIL released, then convert its result.
 fn run<'py, T, F>(py: Python<'py>, op: F) -> PyResult<Bound<'py, PyAny>>
 where
     T: Serialize + Send,
     F: FnOnce() -> Result<T, OpError> + Send,
 {
-    match py.detach(op) {
+    match detach(py, op) {
         Ok(report) => to_py(py, &report),
         Err(e) => Err(raise(py, e)),
     }
@@ -195,7 +223,7 @@ fn mcp_to_cedar_schema(py: Python<'_>, manifest: &Bound<'_, PyAny>) -> PyResult<
             .call_method1("dumps", (manifest,))?
             .extract()?,
     };
-    py.detach(|| dogwood_ops::mcp_to_cedar_schema(&text))
+    detach(py, || dogwood_ops::mcp_to_cedar_schema(&text))
         .map_err(|e| raise(py, e))
 }
 
@@ -224,7 +252,7 @@ impl DogwoodAuthorizer {
         py: Python<'_>,
         f: impl FnOnce(&mut LiveAuthorizer) -> R + Send,
     ) -> PyResult<R> {
-        py.detach(|| self.inner.lock().map(|mut guard| f(&mut guard)).map_err(|_| ()))
+        detach(py, || self.inner.lock().map(|mut guard| f(&mut guard)).map_err(|_| ()))
             .map_err(|()| raise_msg(py, POISONED))
     }
 }
@@ -244,9 +272,10 @@ impl DogwoodAuthorizer {
         providers: Option<String>,
         macros: Option<String>,
     ) -> PyResult<Self> {
-        let inner = py
-            .detach(|| LiveAuthorizer::new(&source, &action_schema, event_schema, providers, macros))
-            .map_err(|e| raise(py, e))?;
+        let inner = detach(py, || {
+            LiveAuthorizer::new(&source, &action_schema, event_schema, providers, macros)
+        })
+        .map_err(|e| raise(py, e))?;
         Ok(DogwoodAuthorizer {
             inner: Mutex::new(inner),
         })

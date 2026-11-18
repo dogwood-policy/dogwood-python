@@ -59,6 +59,9 @@ jobs:
       - uses: taiki-e/install-action@3a3daafd3b7f23b8f65d9f5ba2db203fb59b79e2 # v2.90.2
         with:
           tool: cargo-about@0.9.3
+      # cargo-about runs offline over every release target; `cargo build`
+      # only downloaded the host's crates.
+      - run: cargo fetch --locked
       - run: scripts/third-party-notices.sh THIRD-PARTY-NOTICES
 
       - name: Build the abi3 wheel
@@ -117,8 +120,15 @@ jobs:
         with:
           python-version: "3.13"
 
+      # One file per step: pip-audit resolves its inputs together, and the two
+      # files pin different versions of shared dependencies.
       - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
-          inputs: ci/requirements.txt ci/test-requirements.txt
+          inputs: ci/requirements.txt
+          require-hashes: true
+          no-deps: true
+      - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
+        with:
+          inputs: ci/test-requirements.txt
           require-hashes: true
           no-deps: true

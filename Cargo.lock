@@ -487,6 +487,7 @@ dependencies = [
  "pythonize",
  "serde",
  "serde_json",
+ "stacker",
 ]
 
 [[package]]

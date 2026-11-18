@@ -348,3 +348,25 @@ def test_replay_reports_rejected_history_events():
     assert [v["verdict"] for v in r["verdicts"]] == ["allow"]
     assert [(x["position"], x["timestamp"]) for x in r["rejected"]] == [(1, 2)]
     assert "document" in r["rejected"][0]["reason"]
+
+
+def test_evaluates_on_the_main_thread():
+    # Cedar fails closed ("recursion limit reached") when it believes the stack
+    # is nearly exhausted. On musl the main thread's stack used to be
+    # under-reported, so every decision there was a deny. A decision must be
+    # the same on the main thread as on a fresh default-size thread.
+    assert threading.current_thread() is threading.main_thread()
+
+    def decide():
+        auth = dw.DogwoodAuthorizer(ALLOW_ALL, SCHEMA)
+        d = auth.is_authorized(event(1))
+        r = dw.replay(ALLOW_ALL, SCHEMA, trace_line(1, "a"))
+        return d["verdict"], d["errors"], [v["verdict"] for v in r["verdicts"]]
+
+    expected = ("allow", [], ["allow"])
+    assert decide() == expected
+    results = []
+    t = threading.Thread(target=lambda: results.append(decide()))
+    t.start()
+    t.join()
+    assert results == [expected]
