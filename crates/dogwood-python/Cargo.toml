@@ -1,8 +1,11 @@
 [package]
 name = "dogwood-python"
-version = "0.1.0"
+# The PyPI version too (pyproject.toml reads it). The major.minor tracks the
+# Dogwood release it is built on (dogwood-ops below).
+version = "1.2.0"
 edition = "2024"
 license = "Apache-2.0"
+repository = "https://github.com/dogwood-policy/dogwood-python"
 publish = false
 description = "Python bindings for the Dogwood policy frontend (validate, lower, replay, live authorization)."
 

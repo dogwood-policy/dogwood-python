@@ -53,9 +53,16 @@ jobs:
       # Cargo.lock is out of date.
       - run: cargo build --locked --workspace
 
+      # THIRD-PARTY-NOTICES ships in every wheel. Generating it on every
+      # change means a dependency update with an unreadable or unaccepted
+      # license fails here, not at release time.
+      - uses: taiki-e/install-action@3a3daafd3b7f23b8f65d9f5ba2db203fb59b79e2 # v2.90.2
+        with:
+          tool: cargo-about@0.9.3
+      - run: scripts/third-party-notices.sh THIRD-PARTY-NOTICES
+
       - name: Build the abi3 wheel
-        working-directory: crates/dogwood-python
-        run: '"$RUNNER_TEMP/tools/bin/maturin" build --release --locked --out "$RUNNER_TEMP/dist"'
+        run: '"$RUNNER_TEMP/tools/bin/maturin" build --release --out "$RUNNER_TEMP/dist"'
 
       # Run from outside the source tree so the tests import the installed
       # wheel, not crates/dogwood-python/python.
@@ -97,7 +104,8 @@ jobs:
       - run: cargo deny --locked check
 
   # The Python counterpart of dogwood-wasm's npm-audit: the extension has no
-  # Python runtime dependencies, so this audits the CI build and test tools.
+  # Python runtime dependencies, so this audits the hash-pinned build and test
+  # tools CI and the release workflow install.
   pip-audit:
     runs-on: ubuntu-latest
     steps:
@@ -111,6 +119,6 @@ jobs:
 
       - uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
-          inputs: ci/requirements.txt
+          inputs: ci/requirements.txt ci/test-requirements.txt
           require-hashes: true
           no-deps: true

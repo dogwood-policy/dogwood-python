@@ -1,0 +1,6 @@
+# The test runner alone, for testing release wheels on every platform
+# (.github/workflows/release.yml). Recompile the hash-pinned
+# test-requirements.txt with:
+#   uv pip compile --universal --python-version 3.13 --generate-hashes \
+#     ci/test-requirements.in -o ci/test-requirements.txt
+pytest>=9.0.3

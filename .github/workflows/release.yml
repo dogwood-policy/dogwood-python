@@ -1,0 +1,211 @@
+name: release
+
+# Publishes aws-dogwood to PyPI when a version tag is pushed.
+#
+# - Gated on the full CI workflow and on manual approval through the
+#   `pypi-publish` environment (required reviewers, configured in the repo).
+# - Publishes only commits already on main, so nothing unreviewed ships.
+# - Authenticates with PyPI trusted publishing (GitHub OIDC): no PyPI token is
+#   stored anywhere. Each file is uploaded with a signed provenance
+#   attestation tying it to this workflow run and commit.
+# - Every wheel is tested on its own platform, and scripts/check-release.py
+#   checks the exact files that are published.
+#
+# Run it by hand (Actions -> release -> Run workflow) for a dry run: it builds,
+# tests and checks everything, and publishes nothing.
+#
+# Release procedure: RELEASING.md.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # THIRD-PARTY-NOTICES ships in every wheel and the sdist; generate it once.
+  notices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - uses: taiki-e/install-action@3a3daafd3b7f23b8f65d9f5ba2db203fb59b79e2 # v2.90.2
+        with:
+          tool: cargo-about@0.9.3
+      - run: cargo fetch --locked
+      - run: scripts/third-party-notices.sh THIRD-PARTY-NOTICES
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: notices
+          path: THIRD-PARTY-NOTICES
+          if-no-files-found: error
+
+  sdist:
+    needs: notices
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: notices
+      - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          command: sdist
+          args: --out dist
+      # The sdist must build: pip falls back to it on platforms without a wheel.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: rustup toolchain install
+      - name: Build a wheel from the sdist
+        run: |
+          python -m venv "$RUNNER_TEMP/tools"
+          "$RUNNER_TEMP/tools/bin/pip" install --require-hashes -r ci/requirements.txt
+          "$RUNNER_TEMP/tools/bin/pip" wheel --no-deps --no-build-isolation -w "$RUNNER_TEMP/from-sdist" dist/*.tar.gz
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  # One abi3 wheel (CPython >= 3.9) per platform, each built and tested on a
+  # native runner. Linux wheels are built in the manylinux2014 / musllinux_1_2
+  # containers so they install on old and musl-based distributions.
+  wheels:
+    needs: notices
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: manylinux-x86_64, runner: ubuntu-latest, target: x86_64-unknown-linux-gnu, manylinux: "2014", test: native }
+          - { name: manylinux-aarch64, runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, manylinux: "2014", test: native }
+          - { name: musllinux-x86_64, runner: ubuntu-latest, target: x86_64-unknown-linux-musl, manylinux: musllinux_1_2, test: alpine }
+          - { name: musllinux-aarch64, runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, manylinux: musllinux_1_2, test: alpine }
+          - { name: macos-x86_64, runner: macos-15-intel, target: x86_64-apple-darwin, test: native }
+          - { name: macos-arm64, runner: macos-latest, target: aarch64-apple-darwin, test: native }
+          - { name: windows-x64, runner: windows-latest, target: x86_64-pc-windows-msvc, test: native }
+          - { name: windows-arm64, runner: windows-11-arm, target: aarch64-pc-windows-msvc, test: native }
+    name: wheel (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: notices
+      - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --release --out dist
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: matrix.test == 'native'
+        with:
+          python-version: "3.13"
+      # Tests import the installed wheel: they run from outside the source tree.
+      - name: Test the wheel
+        if: matrix.test == 'native'
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          py="$RUNNER_TEMP/venv/bin/python"; [[ -x "$py" ]] || py="$RUNNER_TEMP/venv/Scripts/python.exe"
+          "$py" -m pip install --require-hashes -r ci/test-requirements.txt
+          "$py" -m pip install --no-index --find-links dist aws-dogwood
+          cd "$RUNNER_TEMP"
+          "$py" -m pytest "$GITHUB_WORKSPACE/crates/dogwood-python/tests"
+      # musl wheels are tested in Alpine: python:3.13-alpine, pinned by digest
+      # (a multi-arch index, so the same digest serves x86_64 and aarch64).
+      - name: Test the wheel (Alpine)
+        if: matrix.test == 'alpine'
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src:ro" -w /tmp \
+            python:3.13-alpine@sha256:9ef1a599f863231c3d91e941389bfdc4a2d6070557243d54df1a4e57015b960e \
+            sh -euc 'pip install --root-user-action=ignore --require-hashes -r /src/ci/test-requirements.txt \
+                     && pip install --root-user-action=ignore --no-index --find-links /src/dist aws-dogwood \
+                     && python -m pytest /src/crates/dogwood-python/tests -p no:cacheprovider'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-${{ matrix.name }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  check:
+    needs: [ci, sdist, wheels]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # Fails before anyone is asked to approve, not after.
+      - name: Tagged commit is on main
+        if: github.event_name == 'push'
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main; only merged commits are released"
+            exit 1
+          }
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: notices
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      # A dry run checks against the version in Cargo.toml.
+      - name: Check the release files
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if [[ "$GITHUB_EVENT_NAME" != push ]]; then
+            tag="v$(python -c 'import tomllib; print(tomllib.load(open("crates/dogwood-python/Cargo.toml", "rb"))["package"]["version"])')"
+          fi
+          python scripts/check-release.py "$tag" dist
+
+  publish:
+    needs: check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi-publish
+      url: https://pypi.org/project/aws-dogwood/
+    permissions:
+      contents: read
+      # Mints the OIDC token PyPI exchanges for a short-lived upload token,
+      # and signs the provenance attestations.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      # Uploads with attestations (the action's default) after `twine check`.
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          packages-dir: dist/
