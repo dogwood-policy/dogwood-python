@@ -161,9 +161,16 @@ Value mapping:
 | `bool` | `Bool` | checked before `int`: `True` is an `int` in Python, but must never compare equal to `Long` 1 |
 | `int` | `Long` | outside the signed 64-bit range raises instead of rounding |
 | `float` | number | NaN and infinities raise |
-| `decimal.Decimal` | Cedar `decimal` | exact text through the core's `{"__decimal": …}` tag; non-finite values (`NaN`, `Infinity`) and exponent forms raise |
+| `decimal.Decimal` | Cedar `decimal` | exact text through the core's `{"__decimal": …}` tag, counted against the string-length limit; non-finite values (`NaN`, `Infinity`) and exponent forms raise; a `Decimal` *subclass* raises (see below) |
 | `{"__decimal": "1.50"}`, `{"__entity": {"type", "id"}}` | tagged values | same escapes as JSON and JS |
 | anything else | — | raises `DogwoodError` naming the type |
+
+Conversion never runs caller-defined Python code. Containers, strings and
+numbers are read through the C API, and only an exact `decimal.Decimal` is
+accepted, so a subclass's `__str__` cannot run mid-conversion and change a
+part of the event the bounds walk already checked. `to_json` also checks the
+depth itself, so even such a change would raise rather than overflow the
+native stack.
 
 ## 7. Errors and fail-closed behaviour
 

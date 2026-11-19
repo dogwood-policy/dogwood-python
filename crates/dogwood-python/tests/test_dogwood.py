@@ -294,6 +294,41 @@ def test_width_and_string_limits():
         auth.is_authorized(event(1, logged={"e": {"x": "a" * (16 * 1024 * 1024 + 1)}}))
 
 
+def test_decimal_subclass_is_rejected_without_running_its_code():
+    # Converting an event must not run caller-defined Python code: a
+    # subclass's __str__ could change the event after it was bounded (here,
+    # nest an unconverted part far past the depth limit, which used to crash
+    # the process) or return text the string limit never counted.
+    auth = dw.DogwoodAuthorizer(ALLOW_ALL, SCHEMA)
+    later = {}
+    calls = []
+
+    class Sneaky(Decimal):
+        def __str__(self):
+            calls.append(1)
+            node = later
+            for _ in range(200_000):
+                node["x"] = {}
+                node = node["x"]
+            return "1"
+
+    with pytest.raises(dw.DogwoodError, match="unsupported value of type `Sneaky`"):
+        auth.is_authorized(event(1, logged={"input": {"document": "d"},
+                                            "a": Sneaky("1"), "b": later}))
+    assert calls == []
+    assert auth.last_timestamp is None
+    # A plain Decimal still converts.
+    d = auth.is_authorized(event(2, logged={"input": {"document": "d"}, "a": Decimal("1.50")}))
+    assert d["verdict"] == "allow", d
+
+
+def test_decimal_text_counts_against_the_string_limit():
+    auth = dw.DogwoodAuthorizer(ALLOW_ALL, SCHEMA)
+    with pytest.raises(dw.DogwoodError, match="characters"):
+        auth.is_authorized(event(1, logged={"input": {"document": "d"},
+                                            "a": Decimal("1" * (16 * 1024 * 1024 + 1))}))
+
+
 # ─── threading ───────────────────────────────────────────────────────
 
 def test_concurrent_instances_and_shared_instance():
