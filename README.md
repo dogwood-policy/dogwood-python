@@ -78,7 +78,9 @@ distribution; a release fails without it.
   supported version) in a digest-pinned `python:3.9-slim` container;
 * `cargo-deny`: RustSec advisories, licenses, bans and sources (`deny.toml`);
 * `pip-audit`: audits the hash-pinned tools in `ci/requirements.txt` and
-  `ci/test-requirements.txt`.
+  `ci/test-requirements.txt`;
+* `secret-scan`: scans the full git history for committed credentials with
+  gitleaks (pinned by version and SHA-256 in `ci.yml`).
 
 To change those tools, edit the `.in` file next to them and recompile with
 the command at its top.
