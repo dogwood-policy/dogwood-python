@@ -255,8 +255,11 @@ Cedar's evaluator and validator check, before recursing, that at least
   patch releases are binding fixes.
 - **Attribution.** `scripts/third-party-notices.sh` (cargo-about, every
   release target) writes `THIRD-PARTY-NOTICES`: every third-party crate
-  compiled in, its license text and any NOTICE file it ships (Apache-2.0
-  §4). The accepted licenses in `about.toml` must match `deny.toml`.
+  compiled in with the location of its upstream source, its license text
+  and any NOTICE file it ships (Apache-2.0 §4; for `smartstring`, MPL-2.0
+  also asks that recipients be told where its source is). No crate is
+  modified: there are no `[patch]` sections, and `cargo-deny` allows only
+  crates.io sources. The accepted licenses in `about.toml` must match `deny.toml`.
 - **Release.** `.github/workflows/release.yml` on a `v*` tag; see
   [RELEASING.md](RELEASING.md).
 

@@ -6,11 +6,14 @@ shown. This file is generated from Cargo.lock by
 scripts/third-party-notices.sh (cargo-about) for every platform a wheel is
 built for; NOTICE files shipped by those crates follow the license texts.
 
+Each crate is listed with the location of its upstream source code. None of
+them is modified: each is compiled exactly as published on crates.io.
+
 ========================================================================
 Crates included
 ========================================================================
 {{#each crates}}
-{{this.package.name}} {{this.package.version}} ({{this.license}})
+{{this.package.name}} {{this.package.version}} ({{this.license}}) - source: {{#if this.package.repository}}{{this.package.repository}}{{else}}https://crates.io/crates/{{this.package.name}}/{{this.package.version}}{{/if}}
 {{/each}}
 
 ========================================================================
