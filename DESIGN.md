@@ -280,7 +280,7 @@ Where it runs:
 
 | When | What |
 |---|---|
-| Every PR, push to `main`, daily (`ci.yml`) | `build-test`: wheel on Linux x86_64, pytest on CPython 3.13, `examples/demo.py` on CPython 3.9 in a digest-pinned container, notices generation; `cargo-deny`; `pip-audit` |
+| Every PR, push to `main`, daily (`ci.yml`) | `build-test`: wheel on Linux x86_64, pytest on CPython 3.13, `examples/demo.py` on CPython 3.9 in a digest-pinned container, notices generation; `cargo-deny`; `pip-audit`; `secret-scan` |
 | Every release and manual dry run (`release.yml`) | all of `ci.yml`, plus each of the eight wheels tested on its own platform (musl in Alpine), a wheel built from the sdist, and `scripts/check-release.py` on the exact files to publish |
 
 ## 12. Supply chain
@@ -291,6 +291,9 @@ Where it runs:
 - The Python tools CI installs (maturin, pytest) are hash-pinned
   (`ci/*.txt`, `--require-hashes`) and audited by `pip-audit`. The package
   itself has no Python runtime dependencies.
+- Committed credentials are caught by GitHub secret scanning with push
+  protection (repository settings) and by the `secret-scan` CI job, which
+  runs gitleaks over the full git history on every PR, push and day.
 - `cargo-deny` gates RustSec advisories, licenses, duplicate/wildcard
   dependencies and sources (crates.io only). Accepted advisories are listed
   in `deny.toml` with a reason and owner.
