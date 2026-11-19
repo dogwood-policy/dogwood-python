@@ -26,7 +26,13 @@ Repository = "https://github.com/dogwood-policy/dogwood-python"
 Documentation = "https://dogwood-policy.github.io/dogwood/"
 
 [project.optional-dependencies]
-test = ["pytest>=9"]
+# pytest 9 needs Python 3.10, and every earlier pytest is affected by
+# CVE-2025-71176 (tmpdir handling, fixed in 9.0.3). Python 3.9 is still
+# supported, so it gets the last pytest that runs there.
+test = [
+  "pytest>=9.0.3; python_version >= '3.10'",
+  "pytest>=8.4,<9; python_version < '3.10'",
+]
 
 [tool.maturin]
 manifest-path = "crates/dogwood-python/Cargo.toml"
