@@ -1,6 +1,6 @@
 name: release
 
-# Publishes aws-dogwood to PyPI when a version tag is pushed.
+# Publishes dogwood-aws to PyPI when a version tag is pushed.
 #
 # - Gated on the full CI workflow and on manual approval through the
 #   `pypi-publish` environment (required reviewers, configured in the repo).
@@ -128,7 +128,7 @@ jobs:
           python -m venv "$RUNNER_TEMP/venv"
           py="$RUNNER_TEMP/venv/bin/python"; [[ -x "$py" ]] || py="$RUNNER_TEMP/venv/Scripts/python.exe"
           "$py" -m pip install --require-hashes -r ci/test-requirements.txt
-          "$py" -m pip install --no-index --find-links dist aws-dogwood
+          "$py" -m pip install --no-index --find-links dist dogwood-aws
           cd "$RUNNER_TEMP"
           "$py" -m pytest "$GITHUB_WORKSPACE/crates/dogwood-python/tests"
       # musl wheels are tested in Alpine: python:3.13-alpine, pinned by digest
@@ -140,7 +140,7 @@ jobs:
             -v "$GITHUB_WORKSPACE:/src:ro" -w /tmp \
             python:3.13-alpine@sha256:9ef1a599f863231c3d91e941389bfdc4a2d6070557243d54df1a4e57015b960e \
             sh -euc 'pip install --root-user-action=ignore --require-hashes -r /src/ci/test-requirements.txt \
-                     && pip install --root-user-action=ignore --no-index --find-links /src/dist aws-dogwood \
+                     && pip install --root-user-action=ignore --no-index --find-links /src/dist dogwood-aws \
                      && python -m pytest /src/crates/dogwood-python/tests -p no:cacheprovider'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -193,7 +193,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi-publish
-      url: https://pypi.org/project/aws-dogwood/
+      url: https://pypi.org/project/dogwood-aws/
     permissions:
       contents: read
       # Mints the OIDC token PyPI exchanges for a short-lived upload token,

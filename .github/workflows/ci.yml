@@ -75,7 +75,7 @@ jobs:
       - name: Test the wheel (CPython 3.13)
         working-directory: ${{ runner.temp }}
         run: |
-          "$RUNNER_TEMP/tools/bin/pip" install --no-index --find-links "$RUNNER_TEMP/dist" aws-dogwood
+          "$RUNNER_TEMP/tools/bin/pip" install --no-index --find-links "$RUNNER_TEMP/dist" dogwood-aws
           "$RUNNER_TEMP/tools/bin/python" -m pytest "$GITHUB_WORKSPACE/crates/dogwood-python/tests"
 
       # The same abi3 wheel must load on the oldest supported CPython. The
@@ -87,7 +87,7 @@ jobs:
             -v "$RUNNER_TEMP/dist:/dist:ro" \
             -v "$GITHUB_WORKSPACE/crates/dogwood-python/examples:/examples:ro" \
             python:3.9-slim@sha256:2d97f6910b16bd338d3060f261f53f144965f755599aab1acda1e13cf1731b1b \
-            sh -euc 'pip install --root-user-action=ignore --no-index --find-links /dist aws-dogwood && python /examples/demo.py'
+            sh -euc 'pip install --root-user-action=ignore --no-index --find-links /dist dogwood-aws && python /examples/demo.py'
 
   cargo-deny:
     runs-on: ubuntu-latest

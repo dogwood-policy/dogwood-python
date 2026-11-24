@@ -1,4 +1,4 @@
-# aws-dogwood: Python bindings for Dogwood
+# dogwood-aws: Python bindings for Dogwood
 
 Python bindings for the [Dogwood](https://github.com/dogwood-policy/dogwood)
 policy frontend: a PyO3 shell over
@@ -8,7 +8,7 @@ the live authorizer, input limits, fail-closed rules). This package only
 converts Python values and maps `OpError` to `dogwood.DogwoodError`.
 
 ```sh
-pip install aws-dogwood
+pip install dogwood-aws
 ```
 
 Wheels are published for Linux (glibc and musl; x86_64 and aarch64), macOS
