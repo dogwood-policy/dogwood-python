@@ -11,7 +11,7 @@ Fails (non-zero) unless:
     crates/dogwood-python/Cargo.toml equals it (without the leading `v`; a
     prerelease is written the Rust way, 1.3.0-rc.1, and PyPI shows 1.3.0rc1);
   - DIST holds exactly one sdist and one abi3 wheel per release platform,
-    all named aws-dogwood at that version;
+    all named dogwood-aws at that version;
   - every wheel and the sdist carry LICENSE, NOTICE and THIRD-PARTY-NOTICES
     (Apache-2.0 section 4) and their metadata names this repository.
 
@@ -26,7 +26,7 @@ import tomllib
 import zipfile
 from pathlib import Path
 
-NAME = "aws-dogwood"
+NAME = "dogwood-aws"
 DIST_NAME = NAME.replace("-", "_")
 REPO = "https://github.com/dogwood-policy/dogwood-python"
 LICENSE_FILES = ["LICENSE", "NOTICE", "THIRD-PARTY-NOTICES"]

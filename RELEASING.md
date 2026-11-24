@@ -1,6 +1,6 @@
 # Releasing
 
-`aws-dogwood` is published to [PyPI](https://pypi.org/project/aws-dogwood/)
+`dogwood-aws` is published to [PyPI](https://pypi.org/project/dogwood-aws/)
 only by [`.github/workflows/release.yml`](.github/workflows/release.yml), when
 a version tag is pushed. Nobody publishes from a laptop, and no PyPI token
 exists: the workflow authenticates with [PyPI trusted
@@ -27,18 +27,18 @@ A release is one sdist plus one abi3 wheel (CPython >= 3.9) for each of:
 The version is set once, in `crates/dogwood-python/Cargo.toml`;
 `pyproject.toml` reads it from there. Its major.minor tracks the Dogwood
 release the bindings are built on (the `dogwood-ops` dependency), as
-`@aws/dogwood-wasm` does: `aws-dogwood` 1.2.x is built on `dogwood-ops` 1.2.
+`@aws/dogwood-wasm` does: `dogwood-aws` 1.2.x is built on `dogwood-ops` 1.2.
 Patch releases are for fixes to the bindings themselves.
 
 Prereleases are written the Cargo way, `X.Y.Z-rc.N` (or `-alpha.N`,
 `-beta.N`), and tagged `vX.Y.Z-rc.N`. PyPI shows them as `X.Y.ZrcN`, and pip
-installs them only when asked (`pip install --pre aws-dogwood`).
+installs them only when asked (`pip install --pre dogwood-aws`).
 
 ## One-time setup
 
 These steps are done once, before the first release. Steps 1 and 2 need
 people with the right access: an organization owner of `dogwood-policy`, and
-a PyPI account that will own the `aws-dogwood` project.
+a PyPI account that will own the `dogwood-aws` project.
 
 1. **Make the repository public.** The PyPI page links to this repository,
    and the provenance attestations record its name and workflow in the
@@ -55,7 +55,7 @@ a PyPI account that will own the `aws-dogwood` project.
 
    | Field | Value |
    |---|---|
-   | PyPI Project Name | `aws-dogwood` |
+   | PyPI Project Name | `dogwood-aws` |
    | Owner | `dogwood-policy` |
    | Repository name | `dogwood-python` |
    | Workflow name | `release.yml` |
@@ -63,7 +63,7 @@ a PyPI account that will own the `aws-dogwood` project.
 
    A pending publisher does not reserve the name; the project is created by
    the first successful upload. After it, add the other maintainers as
-   owners on PyPI (Your projects → `aws-dogwood` → Collaborators), and make
+   owners on PyPI (Your projects → `dogwood-aws` → Collaborators), and make
    sure every owner has two-factor authentication on.
 
 3. **Check the GitHub configuration** (already in place; listed so it can be
@@ -108,7 +108,7 @@ configuration or the list of platforms.
    - fails unless the tagged commit is on `main`;
    - runs `scripts/check-release.py`, which fails unless the tag matches the
      version in `Cargo.toml`, there is exactly one sdist and one wheel per
-     platform in the table above, all named `aws-dogwood` at that version,
+     platform in the table above, all named `dogwood-aws` at that version,
      and every file carries `LICENSE`, `NOTICE` and `THIRD-PARTY-NOTICES`
      and names this repository in its metadata.
 
@@ -126,12 +126,12 @@ configuration or the list of platforms.
    `pypa/gh-action-pypi-publish`, which runs `twine check` first and attaches
    an attestation to each file.
 6. Check the result:
-   - <https://pypi.org/project/aws-dogwood/> shows the new version, and each
+   - <https://pypi.org/project/dogwood-aws/> shows the new version, and each
      file's details page shows its provenance (the repository, the
      `release.yml` workflow and the commit);
    - the attestation can also be fetched directly:
-     `https://pypi.org/integrity/aws-dogwood/X.Y.Z/<file name>/provenance`;
-   - in a fresh virtual environment, `pip install aws-dogwood==X.Y.Z` and
+     `https://pypi.org/integrity/dogwood-aws/X.Y.Z/<file name>/provenance`;
+   - in a fresh virtual environment, `pip install dogwood-aws==X.Y.Z` and
      `python -c "import dogwood"` work.
 
 If any check fails, nothing is published. Fix it on `main` and release a new
@@ -141,7 +141,7 @@ on PyPI, even after its files are deleted.
 ## Withdrawing a release
 
 Do not delete a release from PyPI. If a published version is broken, *yank*
-it (PyPI → `aws-dogwood` → Releases → Options → Yank, with a reason): pip
+it (PyPI → `dogwood-aws` → Releases → Options → Yank, with a reason): pip
 stops choosing it, but anyone pinned to it can still install it. Then
 release a fixed patch version. If the problem is a security vulnerability,
 also follow [SECURITY.md](SECURITY.md).

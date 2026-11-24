@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 # The import name is `dogwood`.
-name = "aws-dogwood"
+name = "dogwood-aws"
 # Taken from crates/dogwood-python/Cargo.toml, the single source of truth.
 dynamic = ["version"]
 description = "Python bindings for the Dogwood policy frontend (validate, lower, replay, live authorization)."

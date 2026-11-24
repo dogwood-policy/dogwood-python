@@ -1,10 +1,10 @@
-# Design: Dogwood Python bindings (`aws-dogwood`)
+# Design: Dogwood Python bindings (`dogwood-aws`)
 
 Status: implemented (1.2.0, not yet released). Owner: Dogwood maintainers.
 
 ## 1. Summary
 
-`aws-dogwood` lets Python programs use the
+`dogwood-aws` lets Python programs use the
 [Dogwood](https://github.com/dogwood-policy/dogwood) policy frontend:
 check, validate, lower, explain and replay `.dw` policy sets, generate a
 Cedar action schema from an MCP `tools/list` manifest, and authorize events
@@ -54,7 +54,7 @@ Non-goals:
           ┌───────────┼────────────┐  rule; provider guard; LiveAuthorizer)
           ▼           ▼            ▼
      dogwood CLI   dogwood-wasm   dogwood-python   ← this package
-                  (@aws/dogwood-wasm)  (aws-dogwood)
+                  (@aws/dogwood-wasm)  (dogwood-aws)
 ```
 
 `dogwood-ops` exists so the bindings do not each copy the CLI's operation
@@ -258,7 +258,7 @@ Cedar's evaluator and validator check, before recursing, that at least
   (x86_64, arm64), Windows (x64, arm64), plus an sdist. No PyPy wheels.
 - **Version.** Set once in `crates/dogwood-python/Cargo.toml` (pyproject
   reads it). Major.minor tracks the Dogwood release it is built on
-  (`aws-dogwood` 1.2 ↔ `dogwood-ops` 1.2), as `@aws/dogwood-wasm` does;
+  (`dogwood-aws` 1.2 ↔ `dogwood-ops` 1.2), as `@aws/dogwood-wasm` does;
   patch releases are binding fixes.
 - **Attribution.** `scripts/third-party-notices.sh` (cargo-about, every
   release target) writes `THIRD-PARTY-NOTICES`: every third-party crate
